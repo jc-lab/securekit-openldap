@@ -71,7 +71,7 @@ services:
       - CAP_SETUID
       - CAP_CHOWN
   - name: openldap
-    image: jclab/linuxkit-bitnami-openldap:latest
+    image: <OPENLDAP_IMAGE>
     env:
       - LDAP_ADMIN_USERNAME=admin
       - LDAP_ADMIN_PASSWORD=admin
