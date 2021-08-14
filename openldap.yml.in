@@ -20,7 +20,7 @@ onboot:
     image: linuxkit/modprobe:944769462b9d10b1b1506498d3eb03dcc5416f7f
     command: ["modprobe", "usb_storage"]
   - name: format
-    image: jclab/securekit-disk:6586a44628929e9dd8c36d7a112e87b0cb58312a-dirty
+    image: jclab/securekit-disk:dc73f6f1101dfa615b2b8d9a43c13fc72cbd03e5
     command:
     - 'sh'
     - '-c'
@@ -34,15 +34,15 @@ onboot:
       - /fs_protector_key.public.asc:/fs_protector_key.public.asc:ro
   
   # REQUIRED
-  - name: init-sftpd
-    image: jclab/securekit-sftpd:f08f177133ba990f0907ed4870539f3e6cd9e245
+  - name: init-sshd
+    image: jclab/securekit-sshd:4755aeb582087f43155509da9964d4231ce0a581
     command: ["/usr/bin/init-ssh.sh", "/var/storage"]
     binds:
       - /var/storage:/var/storage
 onshutdown:
   # REQUIRED
   - name: storage-unmount
-    image: jclab/securekit-disk:6586a44628929e9dd8c36d7a112e87b0cb58312a-dirty
+    image: jclab/securekit-disk:dc73f6f1101dfa615b2b8d9a43c13fc72cbd03e5
     command: ["/opt/securekit/sbin/disk-shutdown", "--umount", "/var/boot", "--umount", "/var/storage", "--luksClose", "storage"]
     binds:
       - /dev:/dev
@@ -56,31 +56,25 @@ services:
     image: linuxkit/dhcpcd:1033f340e2d42f86a60aab70752346f0045ea388
 
   # REQUIRED
-  - name: sftpd
-    image: jclab/securekit-sftpd:f08f177133ba990f0907ed4870539f3e6cd9e245
+  - name: sshd
+    image: jclab/securekit-sshd:4755aeb582087f43155509da9964d4231ce0a581
     binds:
       - /etc/resolv.conf:/etc/resolv.conf:ro
       - /var/storage/etc/ssh:/etc/ssh:ro
-      - /root/.ssh:/root/.ssh
-      - /var/log:/root/log:ro
-      - /var/boot:/root/boot:ro
+      - /home/manager/.ssh/authorized_keys:/home/manager/.ssh/authorized_keys
+      - /var/log:/home/manager/log:ro
+      - /var/boot:/home/manager/boot:ro
       - /var/storage/openldap/tls-csr:/root/tls-csr
-    capabilities:
-      - CAP_NET_BIND_SERVICE
-      - CAP_SYS_CHROOT
-      - CAP_SETGID
-      - CAP_SETUID
-      - CAP_CHOWN
-      - CAP_DAC_OVERRIDE
+    env:
+      - ONLY_SFTP=no
   - name: openldap
     image: <OPENLDAP_IMAGE>
     env:
       - LDAP_ADMIN_USERNAME=admin
       - LDAP_ADMIN_PASSWORD=admin
       - LDAP_ROOT=dc=ldap,dc=example,dc=com
-      - BITNAMI_DEBUG=true
-      - LDAP_ENABLE_TLS=yes
-      - LDAP_TLS_KEY_GENERATE=yes
+      - LDAP_ENABLE_TLS=no
+      - LDAP_TLS_KEY_GENERATE=no
     capabilities:
       - CAP_NET_BIND_SERVICE
       - CAP_SYS_CHROOT
@@ -104,17 +98,23 @@ services:
     command:
       - '/bin/sh'
       - '-c'
-      - 'cat /var/log/onboot/*.log > /dev/kmsg; n=100; while [ 1 ]; do sleep 1; tail -n $n -f /var/log/*.log > /dev/kmsg; n=1; done'
+      - 'function ttys() { cat /sys/class/tty/console/active | sed -e "s/ /\n/g" | sed -e "s:^:/dev/:g"; }; cat /var/log/onboot/*.log | tee $(ttys) > /dev/null; n=100; while [ 1 ]; do sleep 1; tail -n $n -f /var/log/*.log | tee $(ttys) > /dev/null; n=1; done'
     binds:
       - /var/log:/var/log:ro
       - /run/log:/run/log:ro
       - /dev:/dev
 
 files:
-  - path: root/.ssh/authorized_keys
+  # SSH PUBLIC KEY FOR KEY BACKUP TO REMOTE
+  - path: /home/manager/.ssh
+    directory: true
+  - path: /home/manager/.ssh/authorized_keys
     source: authorized_keys
     mode: "0400"
-    optional: true
+    optional: false
+    gid: 1002
+    uid: 1002
+  # PGP FS_PROTECTOR_KEY FOR KEY BACKUP TO LOCAL
   - path: /fs_protector_key.public.asc
     source: fs_protector_key.public.asc
     mode: "0400"
