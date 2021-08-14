@@ -274,6 +274,17 @@ add: olcRootPW
 olcRootPW: $LDAP_ENCRYPTED_CONFIG_ADMIN_PASSWORD
 EOF
     fi
+
+    cat >> "${LDAP_SHARE_DIR}/admin.ldif" << EOF
+
+dn: olcDatabase={0}config,cn=config
+changetype: modify
+replace: olcAccess
+olcAccess: {0} to *
+  by dn.base="gidNumber=0+uidNumber=$(id -u),cn=peercred,cn=external,cn=auth" manage
+  by dn.base="$LDAP_ADMIN_DN" peername.ip="127.0.0.1" manage
+  by * none
+EOF
     debug_execute ldapmodify -Y EXTERNAL -H "ldapi:///" -f "${LDAP_SHARE_DIR}/admin.ldif"
 }
 
