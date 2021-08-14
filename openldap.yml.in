@@ -104,7 +104,7 @@ services:
     command:
       - '/bin/sh'
       - '-c'
-      - 'cat /var/log/onboot/*.log > /dev/kmsg; tail -n 100 -f /var/log/*.log > /dev/kmsg'
+      - 'cat /var/log/onboot/*.log > /dev/kmsg; n=100; while [ 1 ]; do sleep 1; tail -n $n -f /var/log/*.log > /dev/kmsg; n=1; done'
     binds:
       - /var/log:/var/log:ro
       - /run/log:/run/log:ro

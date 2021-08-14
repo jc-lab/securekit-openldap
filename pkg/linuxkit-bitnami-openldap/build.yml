@@ -4,3 +4,7 @@ config:
     - /etc/resolv.conf:/etc/resolv.conf:ro
   capabilities:
     - CAP_NET_BIND_SERVICE
+  net: host
+  ipc: new
+  uid: 1001
+

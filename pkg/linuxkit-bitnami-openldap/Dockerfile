@@ -1,13 +1,3 @@
-FROM docker.io/bitnami/minideb:buster as builder
-ARG DEBIAN_FRONTEND=noninteractive
-
-RUN apt-get update && \
-    apt-get install -y gcc && \
-    mkdir -p /work/
-COPY "chuser.c" "/work/"
-RUN cd /work/ && \
-    gcc -o chuser chuser.c
-
 FROM docker.io/bitnami/minideb:buster
 LABEL maintainer "Bitnami <containers@bitnami.com>"
 
@@ -26,14 +16,11 @@ RUN chmod g+rwX /opt/bitnami
 COPY rootfs /
 RUN /opt/bitnami/scripts/openldap/postunpack.sh
 ENV BITNAMI_APP_NAME="openldap" \
-    BITNAMI_IMAGE_VERSION="2.5.6-debian-10-r9" \
+    BITNAMI_IMAGE_VERSION="2.5.6-debian-10-r17" \
     PATH="/opt/bitnami/openldap/bin:/opt/bitnami/openldap/sbin:/opt/bitnami/common/bin:$PATH"
 
 EXPOSE 1389 1636
 
-COPY --from=builder /work/chuser /opt/chuser
-
 USER 1001
-ENTRYPOINT [ "/opt/chuser", "1001", "/opt/bitnami/scripts/openldap/entrypoint.sh" ]
+ENTRYPOINT [ "/opt/bitnami/scripts/openldap/entrypoint.sh" ]
 CMD [ "/opt/bitnami/scripts/openldap/run.sh" ]
-
