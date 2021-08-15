@@ -4,7 +4,13 @@ SSH_PUBLIC_KEY_DIR=${SSH_PUBLIC_KEY_DIR:-$HOME/public_key}
 
 USER_HOME=/home/user
 
-[ -e /etc/cron.d/ldap-backup ] || echo "${BACKUP_SCHEDULE} root su user -c '/opt/backup-ldap.sh' > /proc/1/fd/1 2>&1" >> /etc/cron.d/ldap-backup
+function getBackupSchedule() {
+    [ -e "${BACKUP_SCHEDULE_FROM_FILE:-}" ] && cat ${BACKUP_SCHEDULE_FROM_FILE} && return 0
+    echo "${BACKUP_SCHEDULE:-0 0 * * *}"
+    return 0
+}
+
+[ -e /etc/cron.d/ldap-backup ] || echo "$(getBackupSchedule) root su user -c '/opt/backup-ldap.sh' > /proc/1/fd/1 2>&1" >> /etc/cron.d/ldap-backup
 
 if [ ! -e "${USER_HOME}/.ssh/id_rsa" ]; then
     echo "generate key..."

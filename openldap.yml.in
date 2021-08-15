@@ -85,6 +85,7 @@ services:
       # - SSH_OPTIONS=-P 2222
       - DISABLE_ENCRYPTED_BACKUP=no
       - "BACKUP_SCHEDULE=0 0 * * *"
+      - BACKUP_SCHEDULE_FROM_FILE=/mnt/backup/schedule.txt
     binds:
       - /etc/resolv.conf:/etc/resolv.conf:ro
       - /containers/services/openldap/lower/opt/bitnami:/opt/bitnami:ro
