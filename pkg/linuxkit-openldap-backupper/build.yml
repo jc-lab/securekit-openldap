@@ -1,0 +1,13 @@
+image: linuxkit-openldap-backupper
+config:
+  binds:
+    - /etc/resolv.conf:/etc/resolv.conf:ro
+  capabilities:
+    - CAP_SYS_CHROOT
+    - CAP_SETGID
+    - CAP_SETUID
+    - CAP_CHOWN
+    - CAP_DAC_OVERRIDE
+  net: host
+  ipc: new
+

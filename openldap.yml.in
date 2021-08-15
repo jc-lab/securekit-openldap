@@ -20,29 +20,25 @@ onboot:
     image: linuxkit/modprobe:944769462b9d10b1b1506498d3eb03dcc5416f7f
     command: ["modprobe", "usb_storage"]
   - name: format
-    image: jclab/securekit-disk:dc73f6f1101dfa615b2b8d9a43c13fc72cbd03e5
+    image: jclab/securekit-disk:1a1a668bb547a67b4232b597b2f0bf1c472b2b46
     command:
     - 'sh'
     - '-c'
     - >
       /opt/securekit/sbin/disk-init /dev/sda --name storage --mbr --mount /var/storage --mount-meta /var/boot &&
       mkdir -p /var/storage/openldap/tls-csr &&
-      chown 1001:1001 -R /var/storage/openldap
+      chown 1001:1001 -R /var/storage/openldap && 
+      mkdir -m 777 -p /var/storage/backup &&
+      mkdir -p /var/storage/ssh
     binds:
       - /dev:/dev
       - /var:/var
       - /fs_protector_key.public.asc:/fs_protector_key.public.asc:ro
   
-  # REQUIRED
-  - name: init-sshd
-    image: jclab/securekit-sshd:4755aeb582087f43155509da9964d4231ce0a581
-    command: ["/usr/bin/init-ssh.sh", "/var/storage"]
-    binds:
-      - /var/storage:/var/storage
 onshutdown:
   # REQUIRED
   - name: storage-unmount
-    image: jclab/securekit-disk:dc73f6f1101dfa615b2b8d9a43c13fc72cbd03e5
+    image: jclab/securekit-disk:1a1a668bb547a67b4232b597b2f0bf1c472b2b46
     command: ["/opt/securekit/sbin/disk-shutdown", "--umount", "/var/boot", "--umount", "/var/storage", "--luksClose", "storage"]
     binds:
       - /dev:/dev
@@ -57,13 +53,14 @@ services:
 
   # REQUIRED
   - name: sshd
-    image: jclab/securekit-sshd:4755aeb582087f43155509da9964d4231ce0a581
+    image: jclab/securekit-sshd:b1af41c8d2119ec1d104bdc04e529d54b41f5df3
     binds:
       - /etc/resolv.conf:/etc/resolv.conf:ro
-      - /var/storage/etc/ssh:/etc/ssh:ro
+      - /var/storage/ssh:/etc/ssh
       - /home/manager/.ssh/authorized_keys:/home/manager/.ssh/authorized_keys
       - /var/log:/home/manager/log:ro
       - /var/boot:/home/manager/boot:ro
+      - /var/storage/backup:/home/manager/backup:ro
       - /var/storage/openldap/tls-csr:/root/tls-csr
     env:
       - ONLY_SFTP=no
@@ -78,17 +75,24 @@ services:
     binds:
       - /etc/resolv.conf:/etc/resolv.conf:ro
       - /var/storage/openldap:/bitnami/openldap
-
-  - name: logread
-    image: busybox:stable-musl
-    command:
-      - '/bin/sh'
-      - '-c'
-      - 'function ttys() { cat /sys/class/tty/console/active | sed -e "s/ /\n/g" | sed -e "s:^:/dev/:g"; }; cat /var/log/onboot/*.log | tee $(ttys) > /dev/null; n=100; while [ 1 ]; do sleep 1; tail -n $n -f /var/log/*.log | tee $(ttys) > /dev/null; n=1; done'
+  - name: ldap-backup
+    image: <LDAP_BACKUPPER_IMAGE>
+    env:
+      - SSH_PUBLIC_KEY_DIR=/mnt/backup/
+      - REMOTE_USER=backupper
+      - REMOTE_HOST=192.168.44.1
+      - REMOTE_PATH=~/
+      # - SSH_OPTIONS=-P 2222
+      - DISABLE_ENCRYPTED_BACKUP=no
+      - "BACKUP_SCHEDULE=0 0 * * *"
     binds:
-      - /var/log:/var/log:ro
-      - /run/log:/run/log:ro
-      - /dev:/dev
+      - /etc/resolv.conf:/etc/resolv.conf:ro
+      - /containers/services/openldap/lower/opt/bitnami:/opt/bitnami:ro
+      - /var/storage/openldap:/bitnami/openldap
+      - /backup_protector_key.public.asc:/backup_protector_key.public.asc:ro
+      - /var/storage/backup:/mnt/backup
+  - name: logread
+    image: jclab/securekit-log2console:984beeff8db4fdb1c974856bd41b619768d90a23
 
 files:
   # SSH PUBLIC KEY FOR KEY BACKUP TO REMOTE
@@ -105,6 +109,12 @@ files:
     source: fs_protector_key.public.asc
     mode: "0400"
     optional: false
+  # PGP BACKUP_PROTECTOR_KEY FOR LDAP BACKUP TO REMOTE
+  - path: /backup_protector_key.public.asc
+    source: backup_protector_key.public.asc
+    mode: "0444"
+    optional: false
+
 #trust:
 #  org:
 #    - linuxkit
