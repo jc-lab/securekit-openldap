@@ -61,7 +61,7 @@ services:
       - /var/log:/home/manager/log:ro
       - /var/boot:/home/manager/boot:ro
       - /var/storage/backup:/home/manager/backup:ro
-      - /var/storage/openldap/tls-csr:/root/tls-csr
+      - /var/storage/openldap/tls-csr:/home/manager/tls-csr
     env:
       - ONLY_SFTP=no
   - name: openldap
