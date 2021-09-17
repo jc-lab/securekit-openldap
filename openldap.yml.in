@@ -53,7 +53,7 @@ services:
 
   # REQUIRED
   - name: sshd
-    image: jclab/securekit-sshd:b1af41c8d2119ec1d104bdc04e529d54b41f5df3
+    image: jclab/securekit-sshd:e857d168dfa48d19b9e75d0631c57d57f970131a
     binds:
       - /etc/resolv.conf:/etc/resolv.conf:ro
       - /var/storage/ssh:/etc/ssh
