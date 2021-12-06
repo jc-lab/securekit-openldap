@@ -6,6 +6,7 @@ init:
   - linuxkit/runc:bf1e0c61fb4678d6428d0aabbd80db5ea24e4d4d
   - linuxkit/containerd:cc02c2af9c928c2faeccbe4edc78bd297ad91866
   - linuxkit/ca-certificates:4df823737c9bf6a9564b736f1a19fd25d60e909a
+  - linuxkit/memlogd:fe4a123b619a7dfffc2ba1297dd03b4ac90e3dd7
 onboot:
   - name: sysctl
     image: linuxkit/sysctl:02d2bd74509fd063857ceb4c4f502f09ee4f2e0a
@@ -48,6 +49,11 @@ services:
     image: linuxkit/rngd:bdabfe138f05f7d48396d2f435af16f5a6ccaa45
     binds:
       - /dev:/dev
+
+  - name: write-and-rotate-logs
+    image: linuxkit/logwrite:568325cf294338b37446943c2b86a8cd8dc703db
+    command: ["/usr/bin/logwrite", "--max-log-size", "16777216", "--max-log-files", "16"] # 16 MiB * 16 files
+
   - name: dhcpcd
     image: linuxkit/dhcpcd:1033f340e2d42f86a60aab70752346f0045ea388
 
